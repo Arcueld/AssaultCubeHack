@@ -5,18 +5,6 @@
 const float FOV = 90.0f; // Field of view in degrees
 
 
-//bool isInFOV(Player* owner,vec3 looking) {
-//	vec3 angle = CalcAngle(owner->position , looking);
-//	vec3 playerAngle(owner->vision.x + 90, owner->vision.y, 0.0f);
-//	playerAngle.NormalizeAngle();
-//	
-//	vec3 delta = playerAngle - angle;
-//	delta.NormalizeAngle();
-//
-//
-//	return (fabs(delta.x) <= FOV / 2 && fabs(delta.y) <= FOV / 2);
-//}
-
 
 bool isInFOV(Player* owner, vec3 targetPos) {
 	vec3 angleToTarget = CalcAngle(owner->position, targetPos);

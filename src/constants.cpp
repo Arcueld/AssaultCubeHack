@@ -9,8 +9,8 @@ EntityList** ppEntityList = (EntityList**)(exeBaseAddress + entityListOffset);
 int playerNums = *(int*)(exeBaseAddress + playerNumsOffset);
 
 void updateConstants() {
-	Player* pPlayer = *(Player**)(exeBaseAddress + selfPlayerOffset);
+	pPlayer = *(Player**)(exeBaseAddress + selfPlayerOffset);
 
-	EntityList** ppEntityList = (EntityList**)(exeBaseAddress + entityListOffset);
-	int playerNums = *(int*)(exeBaseAddress + playerNumsOffset);
+	ppEntityList = (EntityList**)(exeBaseAddress + entityListOffset);
+	playerNums = *(int*)(exeBaseAddress + playerNumsOffset);
 }
