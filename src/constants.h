@@ -8,3 +8,5 @@ EXTERN_C ULONG_PTR exeBaseAddress;
 EXTERN_C Player* pPlayer;
 EXTERN_C EntityList** ppEntityList;
 EXTERN_C int playerNums;
+
+void updateConstants();

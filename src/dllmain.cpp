@@ -11,6 +11,7 @@ HANDLE hookThread = NULL;
 void hook() {
 
     while (true){
+        updateConstants();
         ESP::aimbot();
         Sleep(60);
 
