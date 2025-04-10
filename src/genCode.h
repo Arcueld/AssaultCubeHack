@@ -12,7 +12,10 @@ public:
 	char pad_001C[12]; //0x001C
 	Vector3 position; //0x0028
 	Vector3 vision; //0x0034
-	char pad_0040[172]; //0x0040
+	char pad_0040[16]; //0x0040
+	float eyeHeight; //0x0050
+	float N000009AB; //0x0054
+	char pad_0058[148]; //0x0058
 	int32_t HP; //0x00EC
 	int32_t Armor; //0x00F0
 	char pad_00F4[20]; //0x00F4
@@ -23,13 +26,12 @@ public:
 	int32_t weapon2_CurrentAmmo; //0x012C
 	char pad_0130[16]; //0x0130
 	int32_t weapon1_CurrentAmmo; //0x0140
-	int32_t N00000A22; //0x0144
+	int32_t booms; //0x0144
 	char pad_0148[148]; //0x0148
 	int32_t kills; //0x01DC
-	char pad_01E0[36]; //0x01E0
-	char N000001DF[4]; //0x0204
-	char N000001DD[4]; //0x0208
-	char pad_020C[256]; //0x020C
+	char pad_01E0[37]; //0x01E0
+	char name[60]; //0x0205
+	char pad_0241[203]; //0x0241
 	int32_t team; //0x030C
 	char pad_0310[16]; //0x0310
 
@@ -44,6 +46,14 @@ public:
 	virtual void Function8();
 	virtual void Function9();
 }; //Size: 0x0320
+
+
+
+
+
+
+
+
 
 
 class EntityList {

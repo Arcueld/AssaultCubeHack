@@ -4,18 +4,43 @@
 #include "genCode.h"
 #include "constants.h"
 #include "esp.h"
+#include <detours/detours.h>
+#include "menu.h"
 
-
+HANDLE aimbotThread = NULL;
 HANDLE hookThread = NULL;
+volatile bool g_Running = true;
 
-void hook() {
-
-    while (true){
+void aimbot() {
+    while (g_Running) {
         updateConstants();
         ESP::aimbot();
         Sleep(60);
-
+        if (GetAsyncKeyState(VK_INSERT)) {
+            Menu::toggleMenu();
+        }
     }
+}
+
+void hook() {
+    Sleep(1000);
+    DisableThreadLibraryCalls(hModule);
+
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach(&(PVOID&)o_wglSwapBuffers, Menu::newSwapBuffers);
+
+    DetourTransactionCommit();
+}
+
+void unhook(){
+    Sleep(1000);
+    DisableThreadLibraryCalls(hModule);
+
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach(&(PVOID &)o_wglSwapBuffers, Menu::newSwapBuffers);
+    DetourTransactionCommit();
 }
 
 void console(HMODULE hModule) {
@@ -31,13 +56,14 @@ void console(HMODULE hModule) {
             break;
         }
         if (input == "up") {
-            pPlayer->position.y += 5;
+            pPlayer->position.z += 5;
         }
         if (input == "down") {
-            pPlayer->position.y -= 5;
+            pPlayer->position.z -= 5;
         }
         if (input == "pPlayer") {
             std::cout << std::hex << pPlayer << std::endl;
+            std::cout << pPlayer->name << std::endl;
         }
         if(input == "nums") {
 			std::cout << "Player nums: " << playerNums << std::endl;
@@ -63,12 +89,20 @@ void console(HMODULE hModule) {
 			}
         }
     }
+    g_Running = false;
+    Sleep(200); // wait for threads to finish
+    unhook();
 
-    if(hookThread != NULL) {
-		TerminateThread(hookThread, 0);
-		CloseHandle(hookThread);
-	}
+    Menu::cleanUp();
 
+    if(aimbotThread != NULL) {
+		TerminateThread(aimbotThread, 0);
+		CloseHandle(aimbotThread);
+	}if (hookThread != NULL) {
+        TerminateThread(hookThread, 0);
+        CloseHandle(hookThread);
+    }
+    
     FreeConsole();
     HWND hwndConsole = GetConsoleWindow();
     if (hwndConsole != nullptr) {
@@ -89,6 +123,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     case DLL_PROCESS_ATTACH: {
 
         CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)console, hModule, 0, nullptr);
+        aimbotThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)aimbot, nullptr, 0, nullptr);
         hookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
     }
     case DLL_THREAD_ATTACH:

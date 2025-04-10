@@ -1,6 +1,8 @@
 #include "esp.h"
 #include "constants.h"
 #include <iostream>
+#include "settings.h"
+#include "imgui/imgui.h"
 
 const float FOV = 90.0f; // Field of view in degrees
 
@@ -103,4 +105,65 @@ void ESP::aimbot() {
 
 	pPlayer->vision.x = angle.x;
 	pPlayer->vision.y = angle.y;
+}
+
+void drawCenteredLine(std::string text, float x, float y) {
+	float textWidth = ImGui::CalcTextSize(text.c_str()).x;
+	ImGui::GetBackgroundDrawList()->AddText(ImVec2(x - textWidth / 2, y), IM_COL32(255, 255, 255, 255), text.c_str());
+}
+
+void drawScalingBar(float x1, float y1, float x2, float y2, float width, float value, float max, ImColor color) {
+	float heightDiff = y2 - y1;
+	float scaledHeight = heightDiff * (value / max);
+	
+	ImGui::GetBackgroundDrawList()->AddRect(
+		ImVec2(x1, y1),
+		ImVec2(x2, y2),
+		IM_COL32(255, 255, 255, 255),
+		0, 0, width
+	);
+
+	ImGui::GetBackgroundDrawList()->AddRectFilled(
+		ImVec2(x1, y1), 
+		ImVec2(x2, y1 + scaledHeight), 
+		color
+	);
+}
+
+void ESP::drawESP(){
+	if (!Settings::ESP::enabled) return;
+
+	bool isTeammate = false;
+	EntityList* pEntityList = *ppEntityList;
+	for (int i = 1; i < playerNums + 1; i++) {
+		Player* player = pEntityList->players[i];
+		if (player->HP <=0 || player->HP > 100) continue; // pass died players
+
+		isTeammate = player->team == pPlayer->team;
+		if (!Settings::ESP::drawTeam && isTeammate) continue; // do not draw teammates
+		
+		vec3 headPos = { player->position.x,player->position.y,player->position.z + player->eyeHeight };
+		vec3 feetPos = player->position;
+
+		vec3 headScreenPos = OpenGLWorldToScreen(headPos, viewMatrix, 1024, 860);
+		vec3 feetScreenPos = OpenGLWorldToScreen(feetPos, viewMatrix, 1024, 860);
+
+
+		float height = abs(headScreenPos.y - feetScreenPos.y);
+		float width = height ;
+
+		ImVec2 topLeft = ImVec2(headScreenPos.x - width / 4, headScreenPos.y);
+		ImVec2 topRight = ImVec2(headScreenPos.x + width / 4, headScreenPos.y);
+		ImVec2 bottomLeft = ImVec2(feetScreenPos.x - width / 4, feetScreenPos.y);
+		ImVec2 bottomRight = ImVec2(feetScreenPos.x + width / 4, feetScreenPos.y);
+
+		ImColor espColor = isTeammate? *Settings::ESP::teamColor : *Settings::ESP::enemyColor;
+	
+		ImGui::GetBackgroundDrawList()->AddQuad(topLeft, bottomLeft, bottomRight, topRight, espColor, 1.0f);
+	
+		drawCenteredLine(player->name, headScreenPos.x, headScreenPos.y - height / 2);
+		drawScalingBar(bottomLeft.x - 5 - width / 10, bottomLeft.y, bottomLeft.x -5, topRight.y,1, player->HP, 100.0f, ImColor(0,255,0,255));
+
+	}
+
 }
