@@ -11,17 +11,6 @@ HANDLE aimbotThread = NULL;
 HANDLE hookThread = NULL;
 volatile bool g_Running = true;
 
-void aimbot() {
-    while (g_Running) {
-        updateConstants();
-        ESP::aimbot();
-        Sleep(60);
-        if (GetAsyncKeyState(VK_INSERT)) {
-            Menu::toggleMenu();
-        }
-    }
-}
-
 void hook() {
     Sleep(1000);
     DisableThreadLibraryCalls(hModule);
@@ -31,6 +20,14 @@ void hook() {
     DetourAttach(&(PVOID&)o_wglSwapBuffers, Menu::newSwapBuffers);
 
     DetourTransactionCommit();
+    while (g_Running) {
+        updateConstants();
+        Sleep(300);
+
+        if (GetAsyncKeyState(VK_INSERT)) {
+            Menu::toggleMenu();
+        }
+    }
 }
 
 void unhook(){
@@ -95,10 +92,7 @@ void console(HMODULE hModule) {
 
     Menu::cleanUp();
 
-    if(aimbotThread != NULL) {
-		TerminateThread(aimbotThread, 0);
-		CloseHandle(aimbotThread);
-	}if (hookThread != NULL) {
+    if (hookThread != NULL) {
         TerminateThread(hookThread, 0);
         CloseHandle(hookThread);
     }
@@ -123,7 +117,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     case DLL_PROCESS_ATTACH: {
 
         CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)console, hModule, 0, nullptr);
-        aimbotThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)aimbot, nullptr, 0, nullptr);
         hookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
     }
     case DLL_THREAD_ATTACH:

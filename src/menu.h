@@ -1,6 +1,9 @@
 #pragma once
 #include <Windows.h>
 
+extern bool showMenu;
+
+
 namespace Menu{
 	void toggleMenu();
 	void init();

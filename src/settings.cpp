@@ -10,6 +10,11 @@ namespace Settings {
 
 	}
 	namespace Aimbot {
-
+		extern bool enabled = true;
+		extern bool smoothing = true;
+		extern float smoothingAmount = 1.0f;
+		extern bool checkInFOV = true;
+		extern float fov = 180.0f;
+		extern bool drawFovCircle = true;
 	}
 }

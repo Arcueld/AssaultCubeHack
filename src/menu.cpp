@@ -8,7 +8,7 @@
 #include "imgui/imgui.h"
 #include "settings.h"
 #include "esp.h"
-
+#include <windowsx.h>
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "glu32.lib")
 
@@ -23,9 +23,9 @@ HDC g_HDC;
 WNDPROC o_WndProc = nullptr;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK newWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+LRESULT CALLBACK newWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	if (showMenu) {
-		
+
 		if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) {
 			return 0;
 		}
@@ -45,13 +45,14 @@ LRESULT CALLBACK newWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
 	return CallWindowProc(o_WndProc, hwnd, msg, wParam, lParam);
 }
 
-void Menu::toggleMenu(){
+void Menu::toggleMenu() {
 	showMenu = !showMenu;
 	ImGuiIO& io = ImGui::GetIO();
-	io.WantCaptureKeyboard =showMenu; // À¹½Ø¼üÊó
+	io.WantCaptureKeyboard = false; // æ‹¦æˆªé”®é¼ 
 	io.WantCaptureMouse = showMenu;
-	io.MouseDrawCursor = showMenu; // ÊÇ·ñÓÃimguiµÄÊó±ê
-	o_SDL_SetRelativeMouseMode(!showMenu); // true ËøÖÐÐÄ false Ëæ±ã¶¯
+	io.MouseDrawCursor = showMenu; // æ˜¯å¦ç”¨imguiçš„é¼ æ ‡
+
+	o_SDL_SetRelativeMouseMode(!showMenu); // true é”ä¸­å¿ƒ false éšä¾¿åŠ¨
 
 }
 
@@ -64,28 +65,24 @@ void Menu::init() {
 	ImGui::StyleColorsDark();
 	ImGuiIO& io = ImGui::GetIO();
 
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; 
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 
 	io.Fonts->AddFontDefault();
 	ImGui::SetCurrentContext(ImGui::GetCurrentContext());
 	ImGui::SetNextWindowSize(initWindowSize);
 	initialized = true;
-	
+
 	std::cout << "Menu initialized" << std::endl;
 }
 
-void Menu::startRender(){
+void Menu::startRender() {
 	ImGui_ImplOpenGL2_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 }
 
-void testSettings() {
-	if (!ImGui::BeginTabItem("testing")) return;
 
-
-}
 
 void espSettings() {
 	if (!ImGui::BeginTabItem("ESP")) return;
@@ -98,18 +95,52 @@ void espSettings() {
 
 }
 
-void Menu::render(){
+void aimbotSettings() {
+	if (!ImGui::BeginTabItem("Aimbot")) return;
+
+	ImGui::Checkbox("Enable Aimbot", &Settings::Aimbot::enabled);
+	ImGui::Checkbox("Smoothing", &Settings::Aimbot::smoothing);
+
+
+	// ImGui::SliderFloat and ImGui::DragFloat and ImGui::InputFloat seems have bug in here 
+	// witch cause the mouse cursor stuck in the center of the screen
+
+	ImGui::Text("Smoothing Amount: %.1f", Settings::Aimbot::smoothingAmount);
+	if (ImGui::Button("-##smoothing")) {
+		Settings::Aimbot::smoothingAmount = max(0.5f, Settings::Aimbot::smoothingAmount - 0.1f);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("+##smoothing")) {
+		Settings::Aimbot::smoothingAmount = min(10.0f, Settings::Aimbot::smoothingAmount + 0.1f);
+	}
+
+	ImGui::Checkbox("Check In FOV", &Settings::Aimbot::checkInFOV);
+
+	ImGui::Text("FOV: %.0f", Settings::Aimbot::fov);
+	if (ImGui::Button("-##fov")) {
+		Settings::Aimbot::fov = max(120.0f, Settings::Aimbot::fov - 10.0f);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("+##fov")) {
+		Settings::Aimbot::fov = min(500.0f, Settings::Aimbot::fov + 10.0f);
+	}
+
+	ImGui::Checkbox("Draw FOV Circle", &Settings::Aimbot::drawFovCircle);
+	ImGui::EndTabItem();
+}
+
+void Menu::render() {
 	if (!showMenu) return;
 
 	ImGui::Begin("Menu", &showMenu);
 	if (ImGui::BeginTabBar("Tabbar")) {
 		espSettings();
-		testSettings();
+		aimbotSettings();
 		ImGui::EndTabBar();
 	}
 
 
-	o_SDL_SetRelativeMouseMode(!showMenu); 
+	o_SDL_SetRelativeMouseMode(!showMenu);
 
 	ImGui::End();
 }
@@ -131,42 +162,47 @@ void SetupContext(HDC& hdc) {
 	contextCreated = true;
 }
 
-void Menu::endRender(){
+void Menu::endRender() {
 	ImGui::Render();
 	ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
 }
 
-BOOL __stdcall Menu::newSwapBuffers(HDC hdc){
+BOOL __stdcall Menu::newSwapBuffers(HDC hdc) {
 	if (!initialized) {
 		Menu::init();
 		o_wglSwapBuffers(hdc);
 	}
+
 	gameContext = wglGetCurrentContext();
 	if (!contextCreated) SetupContext(hdc);
+
 	wglMakeCurrent(hdc, myContext);
 	Menu::startRender();
 	Menu::render();
-	ESP::drawESP();
+	if (!showMenu) {
+		ESP::drawESP();
+		ESP::aimbot();
+	}
 	Menu::endRender();
 
 	wglMakeCurrent(hdc, gameContext);
 	return o_wglSwapBuffers(hdc);
 }
 
-void Menu::cleanUp(){
+void Menu::cleanUp() {
 
 	if (initialized) {
-		// »Ö¸´Ô­Ê¼´°¿Ú¹ý³Ì
+		// æ¢å¤åŽŸå§‹çª—å£è¿‡ç¨‹
 		if (o_WndProc && gameWindow) {
 			SetWindowLongPtr(gameWindow, GWLP_WNDPROC, (LONG_PTR)o_WndProc);
 		}
 
-		// ÇåÀí ImGui ×ÊÔ´
+		// æ¸…ç† ImGui èµ„æº
 		ImGui_ImplOpenGL2_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 
-		// É¾³ý OpenGL ÉÏÏÂÎÄ
+		// åˆ é™¤ OpenGL ä¸Šä¸‹æ–‡
 		if (contextCreated && myContext) {
 			wglMakeCurrent(NULL, NULL);
 			wglDeleteContext(myContext);
