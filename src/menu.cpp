@@ -8,7 +8,9 @@
 #include "imgui/imgui.h"
 #include "settings.h"
 #include "esp.h"
+#include "Radar.h"
 #include <windowsx.h>
+
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "glu32.lib")
 
@@ -52,6 +54,15 @@ void Menu::toggleMenu() {
 	io.WantCaptureMouse = showMenu;
 	io.MouseDrawCursor = showMenu; // 是否用imgui的鼠标
 
+	if (Settings::Radar::enabled && !Settings::Radar::lastRadarState) {
+		Radar::drawRadar();
+		Radar::drawMiniMapRadar();
+		Settings::Radar::lastRadarState = true;
+	} else if(!Settings::Radar::enabled && Settings::Radar::lastRadarState){
+		Radar::unpatchMiniMapRadar();
+		Radar::unpatchRadar();
+		Settings::Radar::lastRadarState = false;
+	}
 	o_SDL_SetRelativeMouseMode(!showMenu); // true 锁中心 false 随便动
 
 }
@@ -91,6 +102,14 @@ void espSettings() {
 	ImGui::Checkbox("Draw Team", &Settings::ESP::drawTeam);
 	ImGui::ColorEdit4("Team Color", (float*)&Settings::ESP::teamColor->Value);
 	ImGui::ColorEdit4("Enemy Color", (float*)&Settings::ESP::enemyColor->Value);
+	ImGui::EndTabItem();
+
+}
+
+void radarSettigns() {
+	if (!ImGui::BeginTabItem("Radar")) return;
+
+	ImGui::Checkbox("Enable Radar", &Settings::Radar::enabled);
 	ImGui::EndTabItem();
 
 }
@@ -136,6 +155,7 @@ void Menu::render() {
 	if (ImGui::BeginTabBar("Tabbar")) {
 		espSettings();
 		aimbotSettings();
+		radarSettigns();
 		ImGui::EndTabBar();
 	}
 
@@ -180,6 +200,7 @@ BOOL __stdcall Menu::newSwapBuffers(HDC hdc) {
 	wglMakeCurrent(hdc, myContext);
 	Menu::startRender();
 	Menu::render();
+	
 	if (!showMenu) {
 		ESP::drawESP();
 		ESP::aimbot();

@@ -17,4 +17,8 @@ namespace Settings {
 		extern float fov = 180.0f;
 		extern bool drawFovCircle = true;
 	}
+	namespace Radar {
+		extern bool enabled = true;
+		extern bool lastRadarState = true;
+	}
 }

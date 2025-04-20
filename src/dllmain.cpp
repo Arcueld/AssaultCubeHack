@@ -6,6 +6,8 @@
 #include "esp.h"
 #include <detours/detours.h>
 #include "menu.h"
+#include "settings.h"
+#include "Radar.h"
 
 HANDLE aimbotThread = NULL;
 HANDLE hookThread = NULL;
@@ -27,6 +29,7 @@ void hook() {
         if (GetAsyncKeyState(VK_INSERT)) {
             Menu::toggleMenu();
         }
+
     }
 }
 
@@ -88,6 +91,8 @@ void console(HMODULE hModule) {
     }
     g_Running = false;
     Sleep(200); // wait for threads to finish
+    Radar::unpatchMiniMapRadar();
+    Radar::unpatchRadar();
     unhook();
 
     Menu::cleanUp();
@@ -115,6 +120,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH: {
+        Radar::drawMiniMapRadar();
+        Radar::drawRadar();
 
         CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)console, hModule, 0, nullptr);
         hookThread = CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hook, nullptr, 0, nullptr);
